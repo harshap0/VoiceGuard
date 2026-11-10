@@ -218,14 +218,11 @@ def extract_recruitment_details(transcript):
     ]
 
     delhi_keywords = [
-        "government of nct of delhi",
-        "gnctd"
+        "government of nct of delhi", "gnctd"
     ]
 
     state_keywords = [
-        "ગુજરાત સરકાર",
-        "રાજ્ય સરકાર",
-        "राज्य सरकार"
+        "ગુજરાત સરકાર", "રાજ્ય સરકાર", "राज्य सरकार"
     ]
 
     if any(word in text for word in delhi_keywords):
@@ -239,18 +236,29 @@ def extract_recruitment_details(transcript):
 
     if any(board in details["recruitment_board"] for board in ["GPSC", "OJAS Gujarat"]):
         details["government_level"].append("State Government")
-    vacancy_pattern = (
-    r"\b(?:[\d,]+|one|two|three|four|five|six|seven|eight|nine|ten)"
-    r"\s+vacanc(?:y|ies)\s+for\s+the\s+post\b"
-)
 
+    vacancy_patterns = [
+        r"\b(?:[\d,]+|one|two|three|four|five|six|seven|eight|nine|ten)\s+vacanc(?:y|ies)\b",
+        r"\btotal\s+vacanc(?:y|ies)\s*[:\-]?\s*([\d,]+)\b",
+    ]
 
-    details["vacancy_numbers"] = re.findall(
-        vacancy_pattern, text, re.IGNORECASE
-    )
+    for pattern in vacancy_patterns:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+
+        for match in matches:
+            if match:
+                if match.replace(",", "").isdigit():
+                    count = int(match.replace(",", ""))
+                    vacancy = f"{count} vacancy" if count == 1 else f"{count} vacancies"
+                else:
+                    vacancy = match
+
+                if vacancy not in details["vacancy_numbers"]:
+                    details["vacancy_numbers"].append(vacancy)
+
     numeric_vacancy_pattern = (
-    r"class-i\s+0*(\d{1,3})\s+0*\d{1,3}\s+0*\d{1,3}\b"
-)
+        r"class-i\s+0*(\d{1,3})\s+0*\d{1,3}\s+0*\d{1,3}\b"
+    )
 
     numeric_vacancies = re.findall(
         numeric_vacancy_pattern, text, re.IGNORECASE
@@ -290,7 +298,6 @@ def extract_recruitment_details(transcript):
     details.update(application_dates)
 
     return details
-
 
 def check_official_domain(source_url):
     """Check whether a URL belongs to a configured official source."""
